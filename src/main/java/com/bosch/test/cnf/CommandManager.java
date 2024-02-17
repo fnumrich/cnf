@@ -14,19 +14,19 @@ public class CommandManager implements ApplicationContextAware {
     private ApplicationContext applicationContext;
 
     public void processParallel() {
-        IntStream.range(0, 10).parallel().forEach(i -> {
+        IntStream.range(0, 500).parallel().forEach(i -> {
             try {
-                log(i, "1. Create JAXBContext with classloader " + this.applicationContext.getClassLoader());
-                createJAXBContext(); // Fails in worker threads
-                log(i, "2. JAXBContext created");
+                log(i, "Create JAXBContext with classloader " + this.applicationContext.getClassLoader());
+                JAXBContext.newInstance(ObjectFactory.class); // Fails in worker threads
+                log(i, "JAXBContext created");
             } catch (Exception e) {
-                log(i, "2. ERROR creating JAXBContext: " + e.getMessage());
+                log(i, "ERROR creating JAXBContext: " + e.getCause());
                 try {
                     // Succeeds in worker threads
                     Class.forName("org.glassfish.jaxb.runtime.v2.ContextFactory");
-                    log(i, "3. SUCCESS Class.forName(\"org.glassfish.jaxb.runtime.v2.ContextFactory\")");
+                    log(i, "BUT successful Class.forName(\"org.glassfish.jaxb.runtime.v2.ContextFactory\")");
                 } catch (ClassNotFoundException ex) {
-                    log(i, "3. FAILED Class.forName(\"org.glassfish.jaxb.runtime.v2.ContextFactory\")");
+                    log(i, "FAILED Class.forName(\"org.glassfish.jaxb.runtime.v2.ContextFactory\")");
                 }
             }
         });
@@ -34,10 +34,6 @@ public class CommandManager implements ApplicationContextAware {
 
     private void log(int i, String message) {
         System.out.printf("[%s] - [%s] - %s%n", i, Thread.currentThread().getName(), message);
-    }
-
-    protected JAXBContext createJAXBContext() {
-        return this.applicationContext.getBean("jaxbContext", JAXBContext.class);
     }
 
     @PostConstruct
